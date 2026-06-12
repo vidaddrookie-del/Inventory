@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Manager</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --card: #181d26;
+    --card2: #212835;
+    --accent: #4fa3ff;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --danger: #f87171;
+    --text: #e9edf4;
+    --muted: #93a0b4;
+    --border: #2c3545;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(165deg, #0e1116 0%, #131a24 60%, #16131f 100%);
+    min-height: 100vh;
+    color: var(--text);
+    padding: 22px 14px 80px;
+  }
+  .container { max-width: 980px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { font-size: 1.8rem; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--muted); margin-top: 5px; font-size: 0.92rem; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+  }
+  .card h2 { font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; margin-bottom: 14px; }
+
+  label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 4px; }
+  input[type="text"], input[type="number"], input[type="date"], textarea, select {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card2);
+    color: var(--text);
+    font-size: 0.95rem;
+    outline: none;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  input::placeholder, textarea::placeholder { color: #66718a; }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid .full { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+  button {
+    padding: 11px 18px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.08s, opacity 0.15s;
+    color: #fff;
+    font-family: inherit;
+  }
+  button:hover { opacity: 0.9; }
+  button:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #06203d; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--accent); opacity: 1; }
+  .btn-small { padding: 7px 12px; font-size: 0.8rem; border-radius: 8px; }
+  .btn-danger { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid rgba(248,113,113,0.4); }
+
+  /* image picker */
+  .img-picker {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.88rem;
+    transition: border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .img-picker:hover { border-color: var(--accent); }
+  .img-picker img { max-height: 120px; max-width: 100%; border-radius: 8px; display: block; margin: 0 auto 6px; }
+  .img-picker input[type="file"] { display: none; }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 8px;
+    text-align: center;
+  }
+  .stat .value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+  .stat .label { font-size: 0.68rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .stat.warn .value { color: var(--amber); }
+  .stat.bad .value { color: var(--danger); }
+  @media (max-width: 560px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+  /* toolbar */
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar input[type="text"] { flex: 2; min-width: 160px; }
+  .toolbar select { flex: 1; min-width: 130px; width: auto; }
+
+  /* item cards */
+  .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .item .thumb {
+    height: 150px;
+    background: var(--card2);
+    display: flex; align-items: center; justify-content: center;
+    color: #5a657d; font-size: 2.4rem;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .item .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .item .body { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .item .name-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .item .name { font-weight: 700; font-size: 1.05rem; word-break: break-word; }
+  .item .qty {
+    background: rgba(79,163,255,0.14); color: var(--accent);
+    font-weight: 700; font-size: 0.85rem;
+    padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .item .qty.zero { background: rgba(248,113,113,0.14); color: var(--danger); }
+  .item .field { font-size: 0.85rem; color: var(--muted); display: flex; gap: 6px; }
+  .item .field b { color: var(--text); font-weight: 600; }
+  .item .notes { font-size: 0.83rem; color: var(--muted); font-style: italic; word-break: break-word; }
+  .maint {
+    font-size: 0.8rem; padding: 6px 10px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+  }
+  .maint.ok { background: rgba(74,222,128,0.12); color: var(--green); }
+  .maint.soon { background: rgba(251,191,36,0.12); color: var(--amber); }
+  .maint.overdue { background: rgba(248,113,113,0.14); color: var(--danger); }
+  .item .actions { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; }
+  .item .actions button { flex: 1; }
+
+  .empty { text-align: center; color: var(--muted); padding: 36px 0; font-size: 0.95rem; grid-column: 1 / -1; }
+
+  .notice {
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.35);
+    color: #fca5a5;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  /* image lightbox */
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+    z-index: 50; padding: 20px; cursor: zoom-out;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 95vw; max-height: 90vh; border-radius: 12px; }
+
+  .form-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .form-actions .btn-primary { flex: 1; }
+  #cancelEditBtn { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📦 Inventory <span>Manager</span></h1>
+    <p>Item · Quantity · Location · Use · Notes · Image · Maintenance date</p>
+  </header>
+
+  <div class="notice" id="storageNotice">
+    ⚠️ Storage is unavailable in this preview — items won't be saved after closing. Download the file and open it in your browser for full saving.
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="value" id="statItems">0</div><div class="label">Items</div></div>
+    <div class="stat"><div class="value" id="statUnits">0</div><div class="label">Total Units</div></div>
+    <div class="stat warn"><div class="value" id="statDue">0</div><div class="label">Due ≤ 7 days</div></div>
+    <div class="stat bad"><div class="value" id="statOverdue">0</div><div class="label">Overdue</div></div>
+  </div>
+
+  <!-- ADD / EDIT FORM -->
+  <div class="card" id="formCard">
+    <h2 id="formTitle">Add Item</h2>
+    <div class="grid">
+      <div class="full">
+        <label>Item name *</label>
+        <input type="text" id="fName" placeholder="e.g. Power drill" autocomplete="off">
+      </div>
+      <div>
+        <label>Quantity *</label>
+        <input type="number" id="fQty" min="0" step="1" placeholder="0">
+      </div>
+      <div>
+        <label>Location</label>
+        <input type="text" id="fLocation" placeholder="e.g. Storeroom shelf 2" autocomplete="off">
+      </div>
+      <div class="full">
+        <label>Use</label>
+        <input type="text" id="fUse" placeholder="What is it used for?" autocomplete="off">
+      </div>
+      <div class="full">
+        <label>Notes</label>
+        <textarea id="fNotes" placeholder="Any extra details..."></textarea>
+      </div>
+      <div>
+        <label>Image</label>
+        <div class="img-picker" id="imgPicker">
+          <input type="file" id="fImage" accept="image/*">
+          <div id="imgPickerInner">📷 Tap to add image</div>
+        </div>
+      </div>
+      <div>
+        <label>Maintenance date</label>
+        <input type="date" id="fMaint">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="saveBtn">＋ Add to Inventory</button>
+      <button class="btn-ghost" id="cancelEditBtn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- LIST -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <h2 style="margin-bottom:0;">Inventory</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-ghost btn-small" id="exportBtn">⬇ Export CSV</button>
+        <button class="btn-ghost btn-small" id="clearBtn">🗑 Clear All</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="🔍 Search name, location, use, notes...">
+      <select id="sortSelect">
+        <option value="name">Sort: Name A–Z</option>
+        <option value="qty">Sort: Quantity</option>
+        <option value="maint">Sort: Maintenance date</option>
+        <option value="newest">Sort: Newest first</option>
+      </select>
+      <select id="filterSelect">
+        <option value="all">All items</option>
+        <option value="due">Due ≤ 7 days</option>
+        <option value="overdue">Overdue maintenance</option>
+        <option value="zero">Out of stock (qty 0)</option>
+      </select>
+    </div>
+    <div class="items" id="itemsContainer"></div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox"><img id="lightboxImg" alt=""></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "inventoryItems";
+
+  // ---- storage with fallback ----
+  var memStore = {};
+  var storageOk = true;
+  try { localStorage.setItem("__t__", "1"); localStorage.removeItem("__t__"); }
+  catch (e) { storageOk = false; document.getElementById("storageNotice").style.display = "block"; }
+  function sGet(k) { try { return storageOk ? localStorage.getItem(k) : (memStore[k] || null); } catch (e) { return memStore[k] || null; } }
+  function sSet(k, v) {
+    try { if (storageOk) localStorage.setItem(k, v); else memStore[k] = v; }
+    catch (e) {
+      memStore[k] = v;
+      alert("Storage is full — your images may be too large. The item is kept for this session, but consider using smaller images.");
+    }
+  }
+
+  // ---- state ----
+  var items = [];
+  try { items = JSON.parse(sGet(STORAGE_KEY) || "[]"); } catch (e) { items = []; }
+  var editingId = null;
+  var currentImage = null; // dataURL of image in the form
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function save() { sSet(STORAGE_KEY, JSON.stringify(items)); }
+
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function todayKey() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+  function daysUntil(dateStr) {
+    if (!dateStr) return null;
+    var p = dateStr.split("-");
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    var now = new Date(); now.setHours(0, 0, 0, 0);
+    return Math.round((d - now) / 86400000);
+  }
+  function fmtDate(dateStr) {
+    if (!dateStr) return "";
+    var p = dateStr.split("-");
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
+
+  // ---- image handling (resize to keep storage small) ----
+  $("imgPicker").addEventListener("click", function () { $("fImage").click(); });
+  $("fImage").addEventListener("change", function () {
+    var file = this.files && this.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      var img = new Image();
+      img.onload = function () {
+        var MAX = 640;
+        var w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        currentImage = canvas.toDataURL("image/jpeg", 0.75);
+        showPickerPreview();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function showPickerPreview() {
+    var inner = $("imgPickerInner");
+    if (currentImage) {
+      inner.innerHTML = "";
+      var im = document.createElement("img");
+      im.src = currentImage;
+      inner.appendChild(im);
+      var hint = document.createElement("div");
+      hint.textContent = "Tap to change · ";
+      var rm = document.createElement("a");
+      rm.textContent = "Remove";
+      rm.href = "#";
+      rm.style.color = "var(--danger)";
+      rm.addEventListener("click", function (e) {
+        e.preventDefault(); e.stopPropagation();
+        currentImage = null;
+        $("fImage").value = "";
+        showPickerPreview();
+      });
+      hint.appendChild(rm);
+      inner.appendChild(hint);
+    } else {
+      inner.textContent = "📷 Tap to add image";
+    }
+  }
+
+  // ---- form ----
+  function resetForm() {
+    editingId = null;
+    currentImage = null;
+    $("fName").value = "";
+    $("fQty").value = "";
+    $("fLocation").value = "";
+    $("fUse").value = "";
+    $("fNotes").value = "";
+    $("fMaint").value = "";
+    $("fImage").value = "";
+    showPickerPreview();
+    $("formTitle").textContent = "Add Item";
+    $("saveBtn").textContent = "＋ Add to Inventory";
+    $("cancelEditBtn").style.display = "none";
+  }
+
+  function saveItem() {
+    var name = $("fName").value.trim();
+    if (!name) { $("fName").focus(); $("fName").placeholder = "⚠ Item name is required!"; return; }
+    var qty = parseInt($("fQty").value, 10);
+    if (isNaN(qty) || qty < 0) qty = 0;
+
+    var data = {
+      name: name,
+      qty: qty,
+      location: $("fLocation").value.trim(),
+      use: $("fUse").value.trim(),
+      notes: $("fNotes").value.trim(),
+      image: currentImage,
+      maint: $("fMaint").value || ""
+    };
+
+    if (editingId) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === editingId) {
+          data.id = editingId;
+          data.created = items[i].created;
+          items[i] = data;
+          break;
+        }
+      }
+    } else {
+      data.id = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+      data.created = Date.now();
+      items.unshift(data);
+    }
+    save();
+    resetForm();
+    render();
+  }
+
+  function startEdit(item) {
+    editingId = item.id;
+    currentImage = item.image || null;
+    $("fName").value = item.name;
+    $("fQty").value = item.qty;
+    $("fLocation").value = item.location || "";
+    $("fUse").value = item.use || "";
+    $("fNotes").value = item.notes || "";
+    $("fMaint").value = item.maint || "";
+    showPickerPreview();
+    $("formTitle").textContent = "Edit Item";
+    $("saveBtn").textContent = "💾 Save Changes";
+    $("cancelEditBtn").style.display = "block";
+    $("formCard").scrollIntoView({ behavior: "smooth" });
+  }
+
+  // ---- render ----
+  function render() {
+    // stats
+    var units = 0, due = 0, overdue = 0;
+    items.forEach(function (it) {
+      units += it.qty;
+      var d = daysUntil(it.maint);
+      if (d !== null) {
+        if (d < 0) overdue++;
+        else if (d <= 7) due++;
+      }
+    });
+    $("statItems").textContent = items.length;
+    $("statUnits").textContent = units;
+    $("statDue").textContent = due;
+    $("statOverdue").textContent = overdue;
+
+    // filter + search + sort
+    var q = $("searchInput").value.trim().toLowerCase();
+    var filter = $("filterSelect").value;
+    var sort = $("sortSelect").value;
+
+    var list = items.filter(function (it) {
+      if (q) {
+        var hay = (it.name + " " + (it.location || "") + " " + (it.use || "") + " " + (it.notes || "")).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      var d = daysUntil(it.maint);
+      if (filter === "due") return d !== null && d >= 0 && d <= 7;
+      if (filter === "overdue") return d !== null && d < 0;
+      if (filter === "zero") return it.qty === 0;
+      return true;
+    });
+
+    list.sort(function (a, b) {
+      if (sort === "qty") return a.qty - b.qty;
+      if (sort === "newest") return b.created - a.created;
+      if (sort === "maint") {
+        if (!a.maint && !b.maint) return 0;
+        if (!a.maint) return 1;
+        if (!b.maint) return -1;
+        return a.maint < b.maint ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+    var container = $("itemsContainer");
+    container.innerHTML = "";
+    if (list.length === 0) {
+      container.innerHTML = '<div class="empty">' + (items.length === 0
+        ? "No items yet — add your first item above. 📦"
+        : "No items match your search/filter.") + "</div>";
+      return;
+    }
+
+    list.forEach(function (it) {
+      var card = document.createElement("div");
+      card.className = "item";
+
+      // thumbnail
+      var thumb = document.createElement("div");
+      thumb.className = "thumb";
+      if (it.image) {
+        var im = document.createElement("img");
+        im.src = it.image;
+        im.alt = it.name;
+        thumb.appendChild(im);
+        thumb.addEventListener("click", function () {
+          $("lightboxImg").src = it.image;
+          $("lightbox").classList.add("open");
+        });
+      } else {
+        thumb.textContent = "📦";
+        thumb.style.cursor = "default";
+      }
+      card.appendChild(thumb);
+
+      var body = document.createElement("div");
+      body.className = "body";
+
+      var nameRow = document.createElement("div");
+      nameRow.className = "name-row";
+      var nm = document.createElement("div");
+      nm.className = "name";
+      nm.textContent = it.name;
+      var qty = document.createElement("div");
+      qty.className = "qty" + (it.qty === 0 ? " zero" : "");
+      qty.textContent = "Qty: " + it.qty;
+      nameRow.appendChild(nm);
+      nameRow.appendChild(qty);
+      body.appendChild(nameRow);
+
+      function addField(icon, label, val) {
+        if (!val) return;
+        var f = document.createElement("div");
+        f.className = "field";
+        var b = document.createElement("b");
+        b.textContent = icon + " " + label + ":";
+        f.appendChild(b);
+        f.appendChild(document.createTextNode(" " + val));
+        body.appendChild(f);
+      }
+      addField("📍", "Location", it.location);
+      addField("🔧", "Use", it.use);
+
+      if (it.notes) {
+        var nt = document.createElement("div");
+        nt.className = "notes";
+        nt.textContent = "📝 " + it.notes;
+        body.appendChild(nt);
+      }
+
+      if (it.maint) {
+        var d = daysUntil(it.maint);
+        var m = document.createElement("div");
+        var cls = "ok", txt = "🛠 Maintenance: " + fmtDate(it.maint);
+        if (d < 0) { cls = "overdue"; txt += " — overdue " + Math.abs(d) + "d!"; }
+        else if (d === 0) { cls = "soon"; txt += " — today!"; }
+        else if (d <= 7) { cls = "soon"; txt += " — in " + d + "d"; }
+        m.className = "maint " + cls;
+        m.textContent = txt;
+        body.appendChild(m);
+      }
+
+      var actions = document.createElement("div");
+      actions.className = "actions";
+      var editBtn = document.createElement("button");
+      editBtn.className = "btn-ghost btn-small";
+      editBtn.textContent = "✏️ Edit";
+      editBtn.addEventListener("click", function () { startEdit(it); });
+      var delBtn = document.createElement("button");
+      delBtn.className = "btn-danger btn-small";
+      delBtn.textContent = "🗑 Delete";
+      delBtn.addEventListener("click", function () {
+        if (confirm("Delete \u201C" + it.name + "\u201D from inventory?")) {
+          items = items.filter(function (x) { return x.id !== it.id; });
+          if (editingId === it.id) resetForm();
+          save();
+          render();
+        }
+      });
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      body.appendChild(actions);
+
+      card.appendChild(body);
+      container.appendChild(card);
+    });
+  }
+
+  // ---- CSV export ----
+  function exportCSV() {
+    if (items.length === 0) { alert("No items to export yet."); return; }
+    function esc(v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
+    var rows = [["Item", "Quantity", "Location", "Use", "Notes", "Has Image", "Maintenance Date"]];
+    items.forEach(function (it) {
+      rows.push([esc(it.name), it.qty, esc(it.location), esc(it.use), esc(it.notes), it.image ? "Yes" : "No", it.maint || ""]);
+    });
+    var csv = rows.map(function (r) { return r.join(","); }).join("\n");
+    var blob = new Blob([csv], { type: "text/csv" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "inventory-" + todayKey() + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ---- events ----
+  $("saveBtn").addEventListener("click", saveItem);
+  $("cancelEditBtn").addEventListener("click", resetForm);
+  $("searchInput").addEventListener("input", render);
+  $("sortSelect").addEventListener("change", render);
+  $("filterSelect").addEventListener("change", render);
+  $("exportBtn").addEventListener("click", exportCSV);
+  $("clearBtn").addEventListener("click", function () {
+    if (items.length === 0) return;
+    if (confirm("Delete ALL " + items.length + " items? This cannot be undone.")) {
+      items = [];
+      save();
+      resetForm();
+      render();
+    }
+  });
+  $("lightbox").addEventListener("click", function () { this.classList.remove("open"); });
+
+  render();
+})();
+</script>
+</body>
+</html>
